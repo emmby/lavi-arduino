@@ -1,0 +1,52 @@
+{
+  "name": "lavi",
+  "version": "0.1.0",
+  "license": "MIT",
+  "description": "Lavi statechart runtime for C/C++, PlatformIO, and Arduino IDE (XState v5 compatible), powered by Rust.",
+  "authors": [
+    {
+      "name": "Mike Burton",
+      "email": "mb-github@niskala.org",
+      "maintainer": true
+    }
+  ],
+  "keywords": [
+    "lavi",
+    "xstate",
+    "fsm",
+    "state-machine",
+    "statechart",
+    "rust",
+    "ffi",
+    "arduino"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/emmby/lavi.git"
+  },
+  "build": {
+    "extraScript": "build_rust.py",
+    "includeDir": "src",
+    "srcFilter": [
+      "-<*>"
+    ]
+  },
+  "export": {
+    "include": [
+      "library.json",
+      "library.properties",
+      "build_rust.py",
+      "LICENSE",
+      "README.md",
+      "include/**",
+      "src/**",
+      "examples/**"
+    ]
+  },
+  "frameworks": [
+    "*"
+  ],
+  "platforms": [
+    "*"
+  ]
+}
