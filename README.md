@@ -1,6 +1,6 @@
 # Lavi
 
-**Lavi** is a portable, low-memory statechart and actor runtime compatible with **XState v5**, written in Rust (`lavi`) with idiomatic bindings for **WebAssembly / JavaScript / TypeScript** (`lavi-wasm`), **C / C++ on embedded microcontrollers** (`lavi-c-cpp` / PlatformIO / Arduino IDE), **Python** (`lavi-py`), **Java / Kotlin / Android** (`lavi-jvm`), **Swift / iOS / macOS** (`lavi-swift`), and **Dart / Flutter** (`lavi-dart`).
+**Lavi** is a portable, low-memory statechart and actor runtime compatible with **XState v5**, written in Rust (`lavi`) with idiomatic bindings for **WebAssembly / JavaScript / TypeScript / React / React Native** (`lavi-wasm` / `lavi-fsm`), **C / C++ on embedded microcontrollers** (`lavi-c-cpp` / PlatformIO / Arduino IDE), **Python** (`lavi-py`), **Java / Kotlin / Android** (`lavi-jvm`), **Swift / iOS / macOS** (`lavi-swift`), and **Dart / Flutter** (`lavi-dart`).
 
 ## Why Lavi?
 
@@ -8,11 +8,11 @@
 XState v5 and Stately Studio provide an expressive, standardized JSON configuration format for Harel Statecharts and W3C SCXML semantics. **Lavi** brings that same statechart execution model beyond JavaScript so the exact same machine definition can run identically across:
 - **Embedded Microcontrollers (C / C++ / PlatformIO / Arduino IDE)**: Run statecharts on 32-bit microcontrollers—including ESP32 (Xtensa & RISC-V) and ARM Cortex-M (`cortex-m0plus`, `cortex-m3`, `cortex-m4`, `cortex-m7`, `cortex-m33`: Arduino UNO R4, Nano 33 BLE, RP2040/RP2350, SAMD21/Zero/MKR, Due, STM32, Teensy)—with `#![no_std]` safety and a bounded $O(1)$ CPU call stack.
 - **Native Systems (Rust)**: Embed a lightweight `#![no_std]` + `alloc` statechart engine (`indexmap` is the sole dependency; zero `serde` overhead).
-- **Browsers & Node.js (WebAssembly)**: Use XState v5's `createMachine`, `createActor`, `setup`, `assign`, and `SimulatedClock` APIs backed by the compiled WASM core.
+- **Browsers, Node.js, React & React Native (`lavi-wasm` / `lavi-fsm`)**: Use XState v5's `createMachine`, `createActor`, `setup`, `assign`, `SimulatedClock`, and `lavi-fsm/react` hooks (`useMachine`, `useActor`, `useActorRef`, `useSelector`) backed by WebAssembly on Web/Node and a zero-config `wasm2js` target on React Native / Expo (Hermes & JSC).
 - **Backend Services & Simulation (Python)**: Run statecharts in Python services or drive deterministic tests in `pytest` with `SimulatedClock` using `lavi-py`.
 - **Server JVM & Android (Java & Kotlin)**: Embed statecharts in server backends or Android mobile apps with zero-friction native loading (`.jar`) and 16 KB page-aligned AAR packaging (`.aar`) using `lavi-jvm`.
 - **Apple Platforms & Server (Swift)**: Run statecharts across iOS, macOS, and Linux via Swift Package Manager (`Package.swift`) and `LaviFFI.xcframework` using `lavi-swift`.
-- **Cross-Platform Mobile & Desktop (Dart & Flutter)**: Run statecharts in Dart CLI/server apps and Flutter iOS/Android/desktop apps via `dart:ffi` using `lavi-dart`.
+- **Cross-Platform Mobile & Desktop (React Native / Expo, Dart & Flutter)**: Run statecharts in React Native & Expo Go apps (`lavi-fsm` / `lavi-fsm/react` with zero native linking on Hermes & JSC) and in Dart CLI/server and Flutter iOS/Android/desktop apps via `dart:ffi` using `lavi-dart`.
 
 ### Why the Name "Lavi"?
 **Lavi** is named in honor of systems engineering pioneer **Dr. Jonah Z. Lavi**, who partnered with computer scientist **David Harel** in 1983–1987 to invent **Harel Statecharts** while specifying the embedded avionics software for the *Lavi* aircraft—where complex flight-control logic required a deterministic, hierarchical state model. *Lavi* (לָבִיא) also means "lion" in Hebrew.
@@ -25,15 +25,15 @@ XState v5 and Stately Studio provide an expressive, standardized JSON configurat
    - Bounded $O(1)$ CPU call-stack parsing and traversal via explicit heap work-stacks (`Vec`), fitting comfortably inside an 8 KB ESP32 FreeRTOS `loopTask` stack.
    - Zero-copy `const char*` JSON configuration in C/C++ and bounded runtime memory (pre-start events are safely dropped rather than queued on the heap).
 3. **Idiomatic Target-Language APIs**:
-   - **JS / TS (WASM)**: `createMachine`, `createActor`, `setup`, `assign`, and `SimulatedClock`.
-   - **C (`lavi.h`)**: Opaque handles (`MachineContext*`, `SimulatedClock*`, `const fsm_value_t*`) and function pointers with `void* user_data`.
+   - **JS / TS / React / React Native (`lavi-fsm`)**: `createMachine`, `createActor`, `setup`, `assign`, `isMachineSnapshot`, `inspect` / `actor.system.inspect`, `SimulatedClock`, and `lavi-fsm/react` (`useMachine`, `useActor`, `useActorRef`, `useSelector`).
+   - **C (`lavi.h`)**: Opaque handles (`MachineContext*`, `SimulatedClock*`, `const fsm_value_t*`) and function pointers (`fsm_register_action`, `fsm_register_guard`, `fsm_register_inspector`) with `void* user_data`.
    - **C++11 (`lavi.hpp`)**: Move-safe RAII classes (`lavi::Machine`, `lavi::SimulatedClock`, `lavi::Value`) supporting both zero-allocation function pointers and `std::function` lambdas.
-   - **Rust (`lavi`)**: Strongly-typed `#![no_std]` `RuntimeMachine`, `MachineDefinition`, and `SimulatedClock`.
-   - **Python (`lavi-py`)**: Idiomatic `Machine`, `SimulatedClock`, `Value`, decorators (`@machine.action`, `@machine.guard`), context managers (`with Machine(...)`), and dict/list payload interop.
-   - **Java (`lavi-jvm`)**: `AutoCloseable` `Machine` and `SimulatedClock`, fluent registration (`registerAction`, `registerGuard`), and zero-GC-leak callback mechanics.
-   - **Kotlin (`lavi-jvm`)**: Trailing lambdas (`onAction`, `onGuard`, `onClock`), operator indexing (`ctx["key"]`), and `Map<String, Any?>` event payload support.
-   - **Swift (`lavi-swift`)**: ARC-managed `Machine` and `SimulatedClock`, subscript value access (`ctx["key"]`), trailing closures (`registerAction`, `registerGuard`, `registerDelay`), and `[String: Any]` payload support.
-   - **Dart / Flutter (`lavi-dart`)**: `Finalizer`-backed `Machine` and `SimulatedClock` with deterministic `.dispose()`, `operator []` value inspection, and `Map<String, Object?>` payload support.
+   - **Rust (`lavi`)**: Strongly-typed `#![no_std]` `RuntimeMachine`, `MachineDefinition`, `InspectEvent`, and `SimulatedClock`.
+   - **Python (`lavi-py`)**: Idiomatic `Machine`, `SimulatedClock`, `Value`, decorators (`@machine.action`, `@machine.guard`, `@machine.inspector`), context managers (`with Machine(...)`), and dict/list payload interop.
+   - **Java (`lavi-jvm`)**: `AutoCloseable` `Machine` and `SimulatedClock`, fluent registration (`registerAction`, `registerGuard`, `registerInspector`), and zero-GC-leak callback mechanics.
+   - **Kotlin (`lavi-jvm`)**: Trailing lambdas (`onAction`, `onGuard`, `onClock`, `onInspect`), operator indexing (`ctx["key"]`), and `Map<String, Any?>` event payload support.
+   - **Swift (`lavi-swift`)**: ARC-managed `Machine` and `SimulatedClock`, subscript value access (`ctx["key"]`), trailing closures (`registerAction`, `registerGuard`, `registerDelay`, `registerInspector`), and `[String: Any]` payload support.
+   - **Dart / Flutter (`lavi-dart`)**: `Finalizer`-backed `Machine` and `SimulatedClock` with deterministic `.dispose()`, `operator []` value inspection, `registerInspector`, and `Map<String, Object?>` payload support.
 
 ## Interactive WASM Demos
 
@@ -88,7 +88,7 @@ Or run individual suites:
 
 | Ecosystem | Registry | Package / Artifact | Install Command |
 | :--- | :--- | :--- | :--- |
-| **JavaScript / TypeScript (WASM)** | [npm](https://www.npmjs.com/package/lavi-fsm) | `lavi-fsm` | `npm install lavi-fsm` |
+| **JavaScript / TypeScript / React / React Native** | [npm](https://www.npmjs.com/package/lavi-fsm) | `lavi-fsm` | `npm install lavi-fsm` |
 | **Rust (`#![no_std]`)** | [crates.io](https://crates.io/crates/lavi) | `lavi` | `cargo add lavi` |
 | **Python (`abi3` wheels)** | [PyPI](https://pypi.org/project/lavi/) | `lavi` | `pip install lavi` / `uv add lavi` |
 | **Java / Kotlin (Desktop Fat JAR)** | [Maven Central](https://central.sonatype.com/artifact/io.github.emmby/lavi) | `io.github.emmby:lavi` | `implementation("io.github.emmby:lavi:0.2.0")` |
@@ -211,6 +211,15 @@ console.log(actor.getSnapshot().matches('green')); // true
 
 actor.send({ type: 'PEDESTRIAN_WAIT' });
 console.log(actor.getSnapshot().matches('yellow')); // true
+```
+
+In **React** (Web) and **React Native / Expo** (Hermes & JSC, resolved automatically via the `"react-native"` export condition with zero native linking or `WebAssembly` global required), use `lavi-fsm/react`:
+
+```tsx
+import { useMachine, useSelector } from 'lavi-fsm/react';
+
+const [snapshot, send, actorRef] = useMachine(machine);
+const cycles = useSelector(actorRef, (s) => s.context.cycles);
 ```
 
 ### C (`lavi.h` — [`examples/c/`](./examples/c/))
@@ -431,7 +440,7 @@ clock.dispose();
 | **Shallow & Deep History** | ✅ | ✅ | ✅ *(Plugin/map)* | ✅ | ✅ | — | Shallow only |
 | **Declarative `after` & `SimulatedClock`** | ✅ | ✅ | Manual² | ✅ | Manual² | — | — |
 | **Snapshot Save / Restore** | ✅ | ✅ | — | — | — | — | — |
-| **XState v5 Conformance** | [◐ Core HSM (15/19 suites)](./XSTATE_5_FEATURES.md) | Reference | — | — | — | — | — |
+| **XState v5 Conformance** | [◐ Core HSM (16/19 suites)](./XSTATE_5_FEATURES.md) | Reference | — | — | — | — | — |
 
 *¹ Via QP's manual "Orthogonal Component" pattern. ² Via user-managed timer events rather than declarative `after` delays.*
 
@@ -458,6 +467,15 @@ If you prefer separate top-level chat threads instead of subagents:
 - Open a new conversation in the Agent Manager with **Worktree isolation** enabled.
 - Give it a single one-liner:
   > *"Follow `PROCESS.md` to onboard `final.test.ts` across Rust, WASM, and C/C++."* or *"Resolve `TD-6` from `TECH_DEBT.md`."*
+
+## Reporting Issues
+
+Found a bug, a discrepancy with XState v5 behavior, or a language-binding issue? Please [open an issue on GitHub](https://github.com/emmby/lavi/issues/new)!
+
+To help us reproduce and fix it quickly, please include:
+- The **machine JSON definition** (or XState config)
+- The **relevant host code** (registered actions/guards/delays, events sent, and target language/platform)
+- The **expected vs. actual state or snapshot**
 
 ## License & Attribution
 
