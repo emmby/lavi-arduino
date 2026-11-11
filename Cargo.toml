@@ -1,0 +1,9 @@
+[workspace]
+members = [
+    "lavi",
+    "lavi-c-cpp",
+]
+resolver = "2"
+
+[workspace.dependencies]
+lavi = { path = "./lavi" }
